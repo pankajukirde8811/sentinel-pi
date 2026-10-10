@@ -16,7 +16,7 @@ into an autonomous, sensor-fusion robot.
 - [x] Remote access via SSH
 - [x] Camera detected
 - [x] Encoder pins found by GPIO scan
-- [ ] Ultrasonic verified
+- [x] Ultrasonic verified
 - [ ] Motors verified
 - [ ] IR sensors identified
 
