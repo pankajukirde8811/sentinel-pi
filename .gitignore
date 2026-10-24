@@ -4,3 +4,4 @@ __pycache__/
 *.h264
 venv/
 models/*.caffemodel
+.venv/
