@@ -16,7 +16,7 @@ into an autonomous, sensor-fusion robot.
 - [x] Camera detected
 - [x] Encoder pins found by GPIO scan
 - [x] Ultrasonic verified
-- [ ] Motors verified
+- [x] Motors verified
 - [ ] IR sensors identified
 
 ## Structure
