@@ -15,12 +15,14 @@ import time
 
 import cv2
 import zmq
+
+from libcamera import Transform 
 from picamera2 import Picamera2
 
 PORT = 5555            # laptop connects to tcp://<PI_IP>:5555
 WIDTH, HEIGHT = 640, 480
 JPEG_QUALITY = 70      # lower = smaller frames, faster over Wi-Fi
-
+ROTATE_180 = True
 
 def main():
     # --- network ---
@@ -32,8 +34,9 @@ def main():
     # --- camera ---
     cam = Picamera2()
     config = cam.create_video_configuration(
-        main={"size": (WIDTH, HEIGHT), "format": "RGB888"}  # gives BGR order, which OpenCV expects
-    )
+    main={"size": (WIDTH, HEIGHT), "format": "RGB888"},
+    transform=Transform(hflip=ROTATE_180, vflip=ROTATE_180),  # hflip + vflip = 180° rotation
+)
     cam.configure(config)
     cam.start()
     time.sleep(1.0)  # let auto-exposure settle
