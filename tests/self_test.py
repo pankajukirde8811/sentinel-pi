@@ -72,6 +72,21 @@ for action in (d.forward, d.backward, d.left_turn, d.right_turn):
 d.close()
 results["Motors"] = ask("  Did both wheels move correctly?")
 
+# 6. IR sensors
+from config.pins import IR
+for side in ("left", "right"):
+    ir = Button(IR[side], pull_up=True)
+    print(f"\n[6] IR {side.upper()} (GPIO{IR[side]}) - hold paper in front within 5 s")
+    detected = ir.wait_for_press(timeout=5)
+    print("  obstacle detected" if detected else "  no obstacle seen")
+    if detected:
+        print("  now remove the paper")
+        cleared = ir.wait_for_release(timeout=5)
+    else:
+        cleared = False
+    ir.close()
+    results[f"IR {side}"] = bool(detected and cleared)
+
 # Summary
 print("\n===== SELF-TEST RESULT =====")
 for part, ok in results.items():
