@@ -17,7 +17,7 @@ into an autonomous, sensor-fusion robot.
 - [x] Encoder pins found by GPIO scan
 - [x] Ultrasonic verified
 - [x] Motors verified
-- [ ] IR sensors identified
+- [x] IR sensors identified
 
 ## Structure
 - `config/pins.py`: central GPIO pin map

@@ -5,4 +5,4 @@ ULTRASONIC = {"trigger": 25, "echo": 27}
 ENCODERS = {"a": 23, "b": 16}   # to be confirmed (left/right)
 LED = 7
 BUTTON = 5
-IR = {}                          # not identified yet
+IR = {"left": 20, "right": 21}
