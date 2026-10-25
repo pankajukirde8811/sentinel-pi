@@ -21,7 +21,7 @@ into an autonomous, sensor-fusion robot.
 - [x] Phase 1: live camera stream Pi -> laptop (~32 fps, 640x480, ~20 kB/frame JPEG)
 - [x] Phase 2: I/O server (50 Hz telemetry, watchdog, obstacle stop) + laptop teleop
 - [x] Phase 3: motor characterization + wheel speed controller (feedforward + PI), wheels in air
-- [ ] Phase 3b: floor test + distance calibration
+- [ ] Phase 3b: floor test + distance calibration (first runs done; repeat with power bank mounted on the robot)
 
 ## Pin map (BCM)
 | Function | GPIO |

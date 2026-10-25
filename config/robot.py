@@ -3,7 +3,9 @@ import math
 
 WHEEL_DIAMETER_M = 0.065      # BO motor wheel, ~6.5 cm
 COUNTS_PER_REV = 42.3         # measured: 423 counts / 10 turns (both edges counted).
-                              # re-measure after the encoder glitch filter (Phase 3)
+                              # floor test run 3 (2026-10-25) gave 42.06 -> kept 42.3.
+                              # TODO: repeat floor test x3 with the power bank MOUNTED on the
+                              # robot (runs 1-2 gave ~39, probably disturbed by the cable)
 TRACK_WIDTH_M = 0.10          # wheel centre to wheel centre (measured ~10 cm, calibrate in Phase 5)
 
 WHEEL_CIRCUMFERENCE_M = math.pi * WHEEL_DIAMETER_M
