@@ -9,7 +9,9 @@ Install on the laptop (inside a virtual environment):
     pip install opencv-python pyzmq numpy
 
 Run:
-    python3 camera_viewer.py --host <PI_IP>
+    cd ~/Projects/sentinel-pi/laptop
+source .venv/bin/activate
+python3 camera_viewer.py --host 10.45.2.233
 Press 'q' in the video window to quit.
 """
 import argparse

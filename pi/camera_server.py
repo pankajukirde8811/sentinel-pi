@@ -9,7 +9,7 @@ Install on the Pi:
     sudo apt install -y python3-picamera2 python3-opencv python3-zmq
 
 Run:
-    python3 camera_server.py
+    python3 camera_viewer.py --host 10.45.2.233
 """
 import time
 
