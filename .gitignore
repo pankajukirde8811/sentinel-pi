@@ -6,3 +6,4 @@ venv/
 models/*.caffemodel
 .venv/
 logs/
+.tmp_check/

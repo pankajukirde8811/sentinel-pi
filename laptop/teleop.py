@@ -14,6 +14,8 @@ Keys (click on the window first):
     A / D    steer left / right
     SPACE    stop
     R        reset the encoder counters shown on screen
+    O        reset odometry (robot back to x=0, y=0, heading 0)
+    + / -    zoom the map
     Q / ESC  quit
 Commands are sent 20x per second. If this program stops, the Pi's watchdog
 stops the motors within 0.3 s.
@@ -26,16 +28,55 @@ from collections import deque
 from datetime import datetime
 from pathlib import Path
 
+import math
+
 import cv2
 import numpy as np
 import zmq
 
+from odometry import Odometry
+
 FIELDS = ["t_recv", "seq", "t", "loop_ms", "mode", "enc_l", "enc_r", "pos_l", "pos_r",
           "v_l", "v_r", "tgt_l", "tgt_r", "cmd_l", "cmd_r", "out_l", "out_r",
-          "dist_cm", "ir_l", "ir_r", "wd_ok", "estop", "glitch_l", "glitch_r", "kp", "ki"]
+          "dist_cm", "ir_l", "ir_r", "wd_ok", "estop", "glitch_l", "glitch_r", "kp", "ki",
+          "x", "y", "theta"]
 STEP = {"duty": 0.1, "speed": 0.05}
 LIMIT = {"duty": 0.8, "speed": 0.35}
 GREEN, RED, YELLOW, WHITE, GREY = (80, 220, 80), (60, 60, 230), (0, 210, 230), (235, 235, 235), (150, 150, 150)
+
+
+def draw_map(odo, path, px_per_m, size=440):
+    """Top view: start at the centre, x (forward at start) points UP, y (left) points LEFT."""
+    m = np.full((size, size, 3), 22, np.uint8)
+    c = size // 2
+
+    def to_px(x, y):
+        return int(c - y * px_per_m), int(c - x * px_per_m)
+
+    half = c / px_per_m
+    step = 0.5 if px_per_m >= 60 else 1.0
+    g = -math.floor(half / step) * step
+    while g <= half:
+        a = to_px(g, -half)[1]
+        cv2.line(m, (0, a), (size, a), (45, 45, 45), 1)
+        b = to_px(-half, g)[0]
+        cv2.line(m, (b, 0), (b, size), (45, 45, 45), 1)
+        g += step
+    cv2.circle(m, (c, c), 4, GREY, -1)
+    if len(path) > 1:
+        pts = np.array([to_px(x, y) for x, y in path], np.int32)
+        cv2.polylines(m, [pts], False, YELLOW, 1, cv2.LINE_AA)
+    # robot: triangle pointing along theta
+    L, W = 0.12, 0.07
+    corners = [(L / 2, 0), (-L / 2, W), (-L / 2, -W)]
+    ct, st = math.cos(odo.theta), math.sin(odo.theta)
+    tri = np.array([to_px(odo.x + ct * a - st * b, odo.y + st * a + ct * b) for a, b in corners], np.int32)
+    cv2.fillPoly(m, [tri], GREEN)
+    cv2.putText(m, f"x {odo.x:+.2f} m  y {odo.y:+.2f} m  heading {math.degrees(odo.theta):+6.1f} deg",
+                (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, WHITE, 1, cv2.LINE_AA)
+    cv2.putText(m, f"distance {odo.dist:.2f} m   grid {step} m   O reset  +/- zoom",
+                (10, size - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45, GREY, 1, cv2.LINE_AA)
+    return m
 
 
 def main():
@@ -68,6 +109,9 @@ def main():
     enc_offset = (0, 0)
     loop_hist = deque(maxlen=100)
     rx_times = deque(maxlen=50)
+    odo = Odometry()
+    path = []
+    px_per_m = 100
 
     print("[teleop] M mode, W/S speed, A/D steer, SPACE stop, R reset counters, Q quit")
     try:
@@ -81,6 +125,10 @@ def main():
                 last, last_rx = s, time.monotonic()
                 rx_times.append(last_rx)
                 loop_hist.append(s["loop_ms"])
+                x, y, th = odo.update(s["pos_l"], s["pos_r"])
+                s["x"], s["y"], s["theta"] = round(x, 4), round(y, 4), round(th, 4)
+                if not path or math.hypot(x - path[-1][0], y - path[-1][1]) > 0.01:
+                    path.append((x, y))
                 if writer:
                     writer.writerow(s)
 
@@ -103,6 +151,13 @@ def main():
                 speed = steer = 0.0
             elif key == ord("r") and last:
                 enc_offset = (last["enc_l"], last["enc_r"])
+            elif key == ord("o"):
+                odo.reset()
+                path.clear()
+            elif key in (ord("+"), ord("=")):
+                px_per_m = min(400, px_per_m * 1.25)
+            elif key == ord("-"):
+                px_per_m = max(25, px_per_m / 1.25)
             lim = LIMIT[mode]
             speed = round(max(-lim, min(lim, speed)), 2)
             steer = round(max(-lim, min(lim, steer)), 2)
@@ -148,8 +203,8 @@ def main():
             else:
                 put(f"waiting for io_server on {args.host} ...", 135, GREY)
 
-            put("M mode  W/S speed  A/D steer  SPACE stop  R reset  Q quit", 415, GREY, 0.5)
-            cv2.imshow("sentinel-pi teleop", img)
+            put("M mode  W/S speed  A/D steer  SPACE stop  R reset  O odom  Q quit", 415, GREY, 0.5)
+            cv2.imshow("sentinel-pi teleop", np.hstack([img, draw_map(odo, path, px_per_m)]))
     except KeyboardInterrupt:
         pass
     finally:
