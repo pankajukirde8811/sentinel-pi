@@ -29,6 +29,18 @@ from config.robot import COUNTS_PER_REV, METRES_PER_COUNT, TRACK_WIDTH_M  # noqa
 LOGDIR = Path(__file__).resolve().parent.parent / "logs"
 
 
+def ask_number(prompt):
+    """Ask until the user types a valid number (empty = 0)."""
+    while True:
+        txt = input(prompt).strip().replace(",", ".")
+        if txt == "":
+            return 0.0
+        try:
+            return float(txt)
+        except ValueError:
+            print("    please type a number, e.g. 203.5 or -4 (empty = 0)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", required=True)
@@ -114,8 +126,8 @@ def main():
         return
 
     print("\nNow measure with the tape measure (front wheel axle position):")
-    real = float(input("  distance driven FORWARD from the start line [cm]: ")) / 100
-    side = float(input("  sideways offset from the straight line [cm] (+ = robot ended LEFT, - = RIGHT): ")) / 100
+    real = ask_number("  distance driven FORWARD from the start line [cm]: ") / 100
+    side = ask_number("  sideways offset from the straight line [cm] (+ = LEFT, - = RIGHT, e.g. -3.5): ") / 100
 
     mean_counts = (cl + cr) / 2
     mpc_real = real / mean_counts
