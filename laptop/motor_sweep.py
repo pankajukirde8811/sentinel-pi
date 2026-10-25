@@ -118,6 +118,8 @@ def main():
 
     # ---------- plots ----------
     try:
+        import matplotlib
+        matplotlib.use("Agg")            # draw to file only; no GUI backend needed
         import matplotlib.pyplot as plt
     except ImportError:
         print("Install matplotlib for plots:  pip install matplotlib")
@@ -149,7 +151,8 @@ def main():
     png = LOGDIR / f"motor_characterization_{stamp}.png"
     fig.savefig(png, dpi=120)
     print(f"Plot saved: logs/{png.name}")
-    plt.show()
+    import subprocess
+    subprocess.Popen(["xdg-open", str(png)])   # open in the default image viewer
 
 
 if __name__ == "__main__":
