@@ -131,10 +131,14 @@ class WheelController:
             self.reset()
             self.sign = sign
         t = min(abs(target), V_MAX)
+        ff = (t - self.b) / self.k
+        if meas < 0.02:
+            # standstill: the speed reading needs 2 encoder edges (~50-80 ms), so the
+            # error is meaningless here. Use feedforward + breakaway only, no P/I
+            # (avoids the integrator winding up and the start-up overshoot).
+            return sign * max(0.0, min(1.0, max(ff + self.i, BREAKAWAY_DUTY)))
         e = t - meas
-        u = (t - self.b) / self.k + self.kp * e + self.i
-        if meas < 0.02:                     # standstill: overcome static friction
-            u = max(u, BREAKAWAY_DUTY)
+        u = ff + self.kp * e + self.i
         saturated_high = u >= 1.0 and e > 0
         saturated_low = u <= 0.0 and e < 0
         if not (saturated_high or saturated_low):
@@ -185,6 +189,8 @@ def main():
     prev_cl = prev_cr = 0
     seq = 0
     worst_ms, n_win = 0.0, 0
+    wd_prev, estop_prev = False, False
+    n_wd = n_estop = 0
 
     print(f"[io_server] {RATE_HZ} Hz | telemetry :{TELEMETRY_PORT} | commands :{COMMAND_PORT} | "
           f"watchdog {WATCHDOG_S}s | stop < {STOP_CM} cm | Ctrl+C to stop")
@@ -241,8 +247,21 @@ def main():
                 forward = (out_l + out_r) > 0
 
             # 4. safety (always last, always wins)
-            wd_ok = (now - last_cmd_t) < WATCHDOG_S
+            wd_age = now - last_cmd_t
+            wd_ok = wd_age < WATCHDOG_S
             estop = wd_ok and dist_cm < STOP_CM and forward
+            if wd_ok != wd_prev or estop != estop_prev:      # log every safety event
+                if not wd_ok and seq > 0 and last_cmd_t > 0:
+                    print(f"[io_server] SAFETY: WATCHDOG stop (no command for {wd_age*1000:.0f} ms)")
+                    n_wd += 1
+                elif wd_ok and not wd_prev and n_wd:
+                    print("[io_server] SAFETY: commands back, watchdog cleared")
+                if estop and not estop_prev:
+                    print(f"[io_server] SAFETY: OBSTACLE stop at {dist_cm:.1f} cm")
+                    n_estop += 1
+                elif estop_prev and not estop:
+                    print("[io_server] SAFETY: obstacle cleared")
+                wd_prev, estop_prev = wd_ok, estop
             if not wd_ok or estop:
                 out_l = out_r = 0.0
                 tgt_l = tgt_r = 0.0
@@ -265,7 +284,8 @@ def main():
                 "cmd_l": cmd_l, "cmd_r": cmd_r,
                 "out_l": round(out_l, 4), "out_r": round(out_r, 4),
                 "dist_cm": round(dist_cm, 1), "ir_l": irl, "ir_r": irr,
-                "wd_ok": wd_ok, "estop": estop,
+                "wd_ok": wd_ok, "estop": estop, "wd_age_ms": round(min(wd_age, 9.999) * 1000.0, 1),
+                "n_wd": n_wd, "n_estop": n_estop,
                 "glitch_l": enc_l.glitches, "glitch_r": enc_r.glitches,
                 "kp": pid_l.kp, "ki": pid_l.ki,
             }))

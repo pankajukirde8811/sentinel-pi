@@ -114,12 +114,32 @@ def main():
     f_csv = LOGDIR / f"pid_{stamp}.csv"
     with open(f_csv, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["run", "t", "target", "tgt_l", "tgt_r", "v_l", "v_r", "out_l", "out_r", "kp", "ki"])
+        w.writerow(["run", "t", "target", "tgt_l", "tgt_r", "v_l", "v_r", "out_l", "out_r", "kp", "ki",
+                    "wd_ok", "estop", "wd_age_ms", "dist_cm"])
         for name, data in results.items():
             t0 = data[0]["t"]
             for s in data:
                 w.writerow([name, round(s["t"] - t0, 4), s["target"], s["tgt_l"], s["tgt_r"],
-                            s["v_l"], s["v_r"], s["out_l"], s["out_r"], s["kp"], s["ki"]])
+                            s["v_l"], s["v_r"], s["out_l"], s["out_r"], s["kp"], s["ki"],
+                            s["wd_ok"], s["estop"], s["wd_age_ms"], s["dist_cm"]])
+
+    # ---- safety events during the test ----
+    print("\nSafety events during the test:")
+    any_event = False
+    for name, data in results.items():
+        t0 = data[0]["t"]
+        prev = None
+        for s in data:
+            state = ("WATCHDOG" if not s["wd_ok"] else "") + ("OBSTACLE" if s["estop"] else "")
+            if state and state != prev:
+                print(f"  {name:12s} t={s['t'] - t0:5.2f}s  {state}  "
+                      f"(last command {s['wd_age_ms']:.0f} ms ago, ultrasonic {s['dist_cm']:.1f} cm)")
+                any_event = True
+            prev = state
+        gap = max(s["wd_age_ms"] for s in data)
+        print(f"  {name:12s} longest gap between commands: {gap:.0f} ms")
+    if not any_event:
+        print("  none")
 
     # ---- table ----
     print("\nSteady state (last 1.5 s of each step), m/s")
