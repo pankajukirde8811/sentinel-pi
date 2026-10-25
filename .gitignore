@@ -7,3 +7,4 @@ models/*.caffemodel
 .venv/
 logs/
 .tmp_check/
+!docs/*.jpg

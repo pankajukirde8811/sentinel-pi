@@ -3,6 +3,8 @@
 Raspberry Pi 3B robot car built on the ET1 chassis, developed step by step
 into an autonomous, sensor-fusion robot.
 
+![Sentinel-Pi robot](docs/robot_top.jpg)
+
 ## Hardware
 - Raspberry Pi 3B
 - 2x DC motors with motor driver
@@ -22,6 +24,10 @@ into an autonomous, sensor-fusion robot.
 - [x] Phase 2: I/O server (50 Hz telemetry, watchdog, obstacle stop) + laptop teleop
 - [x] Phase 3: motor characterization + wheel speed controller (feedforward + PI), wheels in air
 - [ ] Phase 3b: floor test + distance calibration (first runs done; repeat with power bank mounted on the robot)
+
+| Underside: IR line sensors (front), encoder sensor board | Slotted encoder disc on the wheel axle |
+|---|---|
+| ![Underside](docs/robot_underside.jpg) | ![Encoder disc](docs/encoder_disc.jpg) |
 
 ## Pin map (BCM)
 | Function | GPIO |
@@ -56,6 +62,12 @@ The Pi does fast I/O and safety; the laptop does the heavy computing.
 
 ![Motor repeatability](docs/motor_repeatability.png)
 
+First run. Right plot: at constant duty the measured speed jumps between 0.24 and 0.29 m/s.
+That is not the motor: counting encoder edges per short time window gives only 2-3 counts,
+so the speed reading is coarse. This led to measuring the time between edges instead.
+
+![First motor characterization](docs/motor_characterization_run1.png)
+
 ### Wheel speed control
 Speed is measured from the time between encoder edges (kernel timestamps via lgpio), with a 2 ms
 glitch filter, because counting edges per 20 ms loop gives only 2-3 counts (too coarse).
@@ -68,3 +80,18 @@ integrator anti-windup. Safety (watchdog, obstacle stop) runs after the controll
 | Left/right speed difference | up to 0.011 m/s | <= 0.001 m/s |
 
 ![Open vs closed loop speed control](docs/speed_control_open_vs_closed.png)
+
+First version of the controller (before fixes). Two problems are visible on the right:
+a start-up spike (the integrator wound up while the speed reading was still 0) and a
+0.56 s stop at 6.5 s caused by the safety layer. Fixes: no P/I action at standstill
+(feedforward + breakaway only), and every safety event is now logged with its reason.
+
+![First controller version](docs/speed_control_first_run.png)
+
+### Floor test (distance calibration, in progress)
+2 m test track with a straight reference line. The robot drives straight in speed mode until
+its encoders read 2 m; the real distance and sideways offset are measured by hand.
+Heading drift over 2 m: 1.6-3.4 deg. Distance calibration is being repeated with the power bank
+mounted on the robot.
+
+![Floor test setup](docs/floor_test_setup.jpg)
