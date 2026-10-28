@@ -1,0 +1,8 @@
+{
+  "bright": 1,
+  "auto": 1,
+  "threshold": 150,
+  "roi_top": 50,
+  "min_area": 300,
+  "min_contrast": 30
+}
